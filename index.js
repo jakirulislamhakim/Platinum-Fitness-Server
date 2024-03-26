@@ -26,11 +26,45 @@ async function run() {
     const galleryCollection = client
       .db("Platinum-Fitness")
       .collection("galleryData");
+    const trainersCollection = client
+      .db("Platinum-Fitness")
+      .collection("Trainers");
 
-    // Gallery Data
+    // get Gallery Data
     app.get("/api/v1/gallery", async (req, res) => {
-      const result = await galleryCollection.find().toArray();
-      res.send(result);
+      const size = parseInt(req.query.size);
+      const page = parseInt(req.query.page) || 1;
+
+      try {
+        const result = await galleryCollection
+          .find()
+          .skip((page - 1) * size)
+          .limit(size)
+          .toArray();
+        // Assuming you have more items in the collection
+        const hasMore =
+          (await galleryCollection.countDocuments()) > page * size;
+        // Calculate nextPage if there's more data available
+        const nextPage = hasMore ? page + 1 : null;
+
+        res.send({
+          nextPage,
+          items: result,
+        });
+      } catch (error) {
+        console.error("Error fetching gallery items:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
+    // get trainers data
+    app.get("/api/v1/trainers", async (req, res) => {
+      try {
+        const result = await trainersCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
     });
 
     console.log(
